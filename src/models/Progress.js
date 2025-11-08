@@ -26,7 +26,21 @@ class Progress {
         throw new Error('Enrollment not found');
       }
 
-      // Get lesson progress
+      // Get all lessons for the course
+      const { data: allLessons } = await supabase
+        .from('lessons')
+        .select('id')
+        .eq('course_id', courseId);
+
+      // Get completed lessons count
+      const { data: completedLessons } = await supabase
+        .from('lesson_progress')
+        .select('lesson_id')
+        .eq('user_id', userId)
+        .eq('completed', true)
+        .in('lesson_id', allLessons?.map(l => l.id) || []);
+
+      // Get lesson progress details
       const { data: lessonProgress } = await supabase
         .from('lesson_progress')
         .select(`
@@ -37,9 +51,7 @@ class Progress {
           lessons(title, duration, order_index)
         `)
         .eq('user_id', userId)
-        .in('lesson_id', 
-          supabase.from('lessons').select('id').eq('course_id', courseId)
-        )
+        .in('lesson_id', allLessons?.map(l => l.id) || [])
         .order('lessons(order_index)');
 
       // Get quiz attempts
@@ -59,15 +71,22 @@ class Progress {
         )
         .order('attempted_at', { ascending: false });
 
-      return new Progress({
+      const totalLessons = allLessons?.length || 0;
+      const completedCount = completedLessons?.length || 0;
+      const completionPercentage = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+
+      return {
         user_id: userId,
         course_id: courseId,
         overall_progress: enrollment.progress,
+        completion_percentage: completionPercentage,
+        lessons_completed: completedCount,
+        total_lessons: totalLessons,
         enrolled_at: enrollment.enrolled_at,
         completed_at: enrollment.completed_at,
         lesson_progress: lessonProgress || [],
         quiz_attempts: quizAttempts || []
-      });
+      };
     } catch (error) {
       throw error;
     }

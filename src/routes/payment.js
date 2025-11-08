@@ -73,7 +73,7 @@ router.post('/create-checkout-session', authenticateToken, async (req, res) => {
 });
 
 // Verify payment (webhook)
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+router.post('/webhook', async (req, res) => {
   try {
     const sig = req.headers['stripe-signature'];
     const event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
@@ -112,6 +112,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
     res.json({ received: true });
   } catch (error) {
+    console.error('Webhook error:', error.message);
     res.status(400).json({ error: error.message });
   }
 });

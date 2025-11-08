@@ -53,6 +53,9 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// Webhook route needs raw body - must come before JSON parsing
+app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
+
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));

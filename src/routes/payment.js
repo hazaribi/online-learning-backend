@@ -73,7 +73,7 @@ router.post('/create-checkout-session', authenticateToken, async (req, res) => {
 });
 
 // Verify payment (webhook)
-router.post('/verify', express.raw({ type: 'application/json' }), async (req, res) => {
+router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
     const sig = req.headers['stripe-signature'];
     const event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
@@ -82,20 +82,32 @@ router.post('/verify', express.raw({ type: 'application/json' }), async (req, re
       const session = event.data.object;
       const { user_id, course_id } = session.metadata;
 
+      console.log('Webhook received:', { user_id, course_id, session_id: session.id });
+
       // Update payment status
-      await supabase
+      const { error: paymentError } = await supabase
         .from('payments')
         .update({ status: 'completed' })
         .eq('stripe_payment_id', session.id);
 
+      if (paymentError) {
+        console.error('Payment update error:', paymentError);
+      }
+
       // Create enrollment
-      await supabase
+      const { error: enrollmentError } = await supabase
         .from('enrollments')
         .insert([{
           user_id,
           course_id,
           enrolled_at: new Date().toISOString()
         }]);
+
+      if (enrollmentError) {
+        console.error('Enrollment creation error:', enrollmentError);
+      } else {
+        console.log('Enrollment created successfully');
+      }
     }
 
     res.json({ received: true });

@@ -82,7 +82,10 @@ class Quiz {
     const totalQuestions = this.questions.length;
 
     this.questions.forEach((question, index) => {
-      if (answers[index] === question.correct_answer) {
+      const userAnswer = answers[index];
+      const correctAnswer = question.correct_answer.toString();
+      
+      if (userAnswer === correctAnswer) {
         correctAnswers++;
       }
     });

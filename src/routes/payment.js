@@ -73,9 +73,12 @@ router.post('/create-checkout-session', authenticateToken, async (req, res) => {
 });
 
 // Verify payment (webhook)
-router.post('/webhook', async (req, res) => {
+router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
     const sig = req.headers['stripe-signature'];
+    console.log('Webhook signature:', sig);
+    console.log('Webhook secret exists:', !!process.env.STRIPE_WEBHOOK_SECRET);
+    
     const event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
 
     if (event.type === 'checkout.session.completed') {

@@ -27,52 +27,60 @@ class Progress {
       }
 
       // Get all lessons for the course
-      const { data: allLessons } = await supabase
+      const { data: allLessons, error: lessonsError } = await supabase
         .from('lessons')
         .select('id')
         .eq('course_id', courseId);
 
+      if (lessonsError) {
+        console.error('Error fetching lessons:', lessonsError);
+      }
+
+      const lessonIds = Array.isArray(allLessons) ? allLessons.map(l => l.id) : [];
+      
       // Get completed lessons count
-      const { data: completedLessons } = await supabase
-        .from('lesson_progress')
-        .select('lesson_id')
-        .eq('user_id', userId)
-        .eq('completed', true)
-        .in('lesson_id', allLessons?.map(l => l.id) || []);
+      let completedLessons = [];
+      if (lessonIds.length > 0) {
+        const { data, error } = await supabase
+          .from('lesson_progress')
+          .select('lesson_id')
+          .eq('user_id', userId)
+          .eq('completed', true)
+          .in('lesson_id', lessonIds);
+        
+        if (!error) {
+          completedLessons = data || [];
+        }
+      }
 
       // Get lesson progress details
-      const { data: lessonProgress } = await supabase
-        .from('lesson_progress')
-        .select(`
-          lesson_id,
-          completed,
-          watched_duration,
-          completed_at,
-          lessons(title, duration, order_index)
-        `)
-        .eq('user_id', userId)
-        .in('lesson_id', allLessons?.map(l => l.id) || [])
-        .order('lessons(order_index)');
+      let lessonProgress = [];
+      if (lessonIds.length > 0) {
+        const { data, error } = await supabase
+          .from('lesson_progress')
+          .select(`
+            lesson_id,
+            completed,
+            watched_duration,
+            completed_at
+          `)
+          .eq('user_id', userId)
+          .in('lesson_id', lessonIds);
+        
+        if (!error) {
+          lessonProgress = data || [];
+        }
+      }
 
       // Get quiz attempts
       const { data: quizAttempts } = await supabase
         .from('quiz_attempts')
-        .select(`
-          id,
-          quiz_id,
-          score,
-          passed,
-          attempted_at,
-          quizzes(title)
-        `)
+        .select('id, quiz_id, score, passed, attempted_at')
         .eq('user_id', userId)
-        .in('quiz_id',
-          supabase.from('quizzes').select('id').eq('course_id', courseId)
-        )
         .order('attempted_at', { ascending: false });
 
-      const totalLessons = allLessons?.length || 0;
-      const completedCount = completedLessons?.length || 0;
+      const totalLessons = Array.isArray(allLessons) ? allLessons.length : 0;
+      const completedCount = Array.isArray(completedLessons) ? completedLessons.length : 0;
       const completionPercentage = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
 
       return {

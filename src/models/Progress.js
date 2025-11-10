@@ -116,7 +116,7 @@ class Progress {
         throw new Error('Lesson not found');
       }
 
-      // Update lesson progress
+      // Update lesson progress with proper upsert
       const { error: progressError } = await supabase
         .from('lesson_progress')
         .upsert({
@@ -125,6 +125,8 @@ class Progress {
           watched_duration,
           completed,
           completed_at: completed ? new Date().toISOString() : null
+        }, {
+          onConflict: 'user_id,lesson_id'
         });
 
       if (progressError) throw progressError;

@@ -166,6 +166,32 @@ class Course {
     if (error) throw error;
     return count || 0;
   }
+
+  // Get completed students for a course
+  static async getCompletedStudents(courseId) {
+    const { data, error } = await supabase
+      .from('enrollments')
+      .select(`
+        id,
+        progress,
+        completed_at,
+        student:users(id, name, email)
+      `)
+      .eq('course_id', courseId)
+      .eq('progress', 100)
+      .not('completed_at', 'is', null);
+
+    if (error) throw error;
+    
+    return data.map(enrollment => ({
+      id: enrollment.id,
+      student_id: enrollment.student.id,
+      student_name: enrollment.student.name,
+      student_email: enrollment.student.email,
+      progress: enrollment.progress,
+      completed_at: enrollment.completed_at
+    }));
+  }
 }
 
 module.exports = Course;

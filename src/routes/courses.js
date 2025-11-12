@@ -112,4 +112,26 @@ router.get('/instructor/:instructorId', authenticateToken, async (req, res) => {
   }
 });
 
+// Get completed students for a course
+router.get('/:courseId/completed-students', authenticateToken, requireRole(['instructor', 'admin']), async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+
+    // Check if user owns the course or is admin
+    if (!course.isOwnedBy(req.user.id) && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Not authorized to view this course data' });
+    }
+
+    const completedStudents = await Course.getCompletedStudents(courseId);
+    res.json({ completedStudents });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

@@ -58,7 +58,17 @@ router.post('/update', authenticateToken, async (req, res) => {
   }
 });
 
-// Get user statistics
+// Get current user's statistics
+router.get('/stats/me', authenticateToken, async (req, res) => {
+  try {
+    const stats = await Progress.getUserStats(req.user.id);
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get user statistics (for admin/instructor access)
 router.get('/stats/:userId', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;

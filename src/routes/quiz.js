@@ -45,6 +45,16 @@ router.post('/submit', authenticateToken, async (req, res) => {
   }
 });
 
+// Get current user's quiz attempts
+router.get('/attempts/me', authenticateToken, async (req, res) => {
+  try {
+    const attempts = await Quiz.getUserAttempts(req.user.id);
+    res.json({ attempts });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Create quiz (Instructor only)
 router.post('/create', authenticateToken, requireRole(['instructor', 'admin']), async (req, res) => {
   try {

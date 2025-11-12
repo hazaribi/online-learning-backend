@@ -133,6 +133,18 @@ class Quiz {
     return data;
   }
 
+  // Get all quiz attempts for a user
+  static async getUserAttempts(userId) {
+    const { data, error } = await supabase
+      .from('quiz_attempts')
+      .select('*')
+      .eq('user_id', userId)
+      .order('attempted_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
   // Validate quiz data
   static validateQuizData(quizData) {
     const { title, questions, passing_score } = quizData;
